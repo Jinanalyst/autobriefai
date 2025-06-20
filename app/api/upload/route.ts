@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSummaryRecord, updateSummaryRecord } from '@/lib/supabase'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { createSummaryRecord } from '@/lib/supabase'
 import { summarizeContent, extractTextFromAudio } from '@/lib/openai'
-import { supabase } from '@/lib/supabase'
 
 // Helper function to extract text from PDF
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
@@ -39,6 +40,37 @@ async function extractTextFromDOCX(buffer: Buffer): Promise<string> {
 export async function POST(request: NextRequest) {
   console.log("Upload API endpoint hit.");
   try {
+    const cookieStore = cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError || !session) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+    const user = session.user;
+    console.log(`User ${user.id} authenticated.`);
+
+    // Check summary count for the user
+    const { count, error: countError } = await supabase
+      .from('summaries')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+
+    if (countError) {
+      console.error('Error counting summaries:', countError);
+      throw countError;
+    }
+    
+    console.log(`User ${user.id} has ${count} summaries.`);
+
+    // For the free plan, limit to 5 summaries
+    if (count !== null && count >= 5) {
+      return NextResponse.json({ 
+        error: 'You have reached the maximum number of 5 summaries for the free plan.' 
+      }, { status: 403 }); // 403 Forbidden
+    }
+
     const formData = await request.formData()
     const file = formData.get('file') as File
 
@@ -111,10 +143,11 @@ export async function POST(request: NextRequest) {
     
     const sanitizedFileName = sanitizeFilename(file.name);
     const fileName = `${Date.now()}-${sanitizedFileName}`;
+    const filePath = `${user.id}/${fileName}`;
     
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('uploads')
-      .upload(fileName, fileBuffer, {
+      .upload(filePath, fileBuffer, {
         contentType: file.type,
         upsert: false,
       })
@@ -125,18 +158,24 @@ export async function POST(request: NextRequest) {
     }
     console.log("File uploaded to Supabase Storage successfully.");
 
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
+    // Create a signed URL for the private file
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from('uploads')
-      .getPublicUrl(fileName)
-    console.log(`Retrieved public URL: ${publicUrl}`);
+      .createSignedUrl(filePath, 60 * 60 * 24 * 7) // Expires in 7 days
+
+    if (signedUrlError) {
+      console.error('Error creating signed URL:', signedUrlError);
+      return NextResponse.json({ error: 'Failed to create signed URL' }, { status: 500 });
+    }
+    console.log(`Retrieved signed URL: ${signedUrlData.signedUrl}`);
 
     // Create final record in Supabase
     console.log("Creating final record in database...");
     const record = await createSummaryRecord({
+      user_id: user.id,
       file_name: file.name,
       file_type: file.type,
-      file_url: publicUrl,
+      file_url: signedUrlData.signedUrl,
       summary: summaryResult.summary,
       key_points: summaryResult.keyPoints,
       action_items: summaryResult.actionItems,

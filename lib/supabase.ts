@@ -7,6 +7,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export interface SummaryRecord {
   id: string
+  user_id: string
   file_name: string
   file_type: string
   file_url: string
