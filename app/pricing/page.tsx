@@ -7,7 +7,6 @@ const demoPlans: PricingPlan[] = [
     name: "STARTER",
     tier: 'starter',
     price: "Free",
-    yearlyPrice: "0",
     period: "per month",
     features: [
       "Up to 5 summaries",
@@ -23,7 +22,6 @@ const demoPlans: PricingPlan[] = [
     name: "PROFESSIONAL",
     tier: 'professional',
     price: "0.5",
-    yearlyPrice: "0",
     period: "One-time payment",
     features: [
       "Unlimited summaries",
@@ -42,7 +40,6 @@ const demoPlans: PricingPlan[] = [
     name: "ENTERPRISE",
     tier: 'enterprise',
     price: "1",
-    yearlyPrice: "0",
     period: "One-time payment",
     features: [
       "Everything in Professional",
