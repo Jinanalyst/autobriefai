@@ -5,32 +5,22 @@ import { supabase } from '@/lib/supabase'
 
 // Helper function to extract text from PDF
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
-  const pdfjsLib = await import('pdfjs-dist')
-  
-  // Set up the worker for server-side rendering
-  if (typeof window === 'undefined') {
-    // Server-side: use a simple worker
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
-  }
-
   try {
-    const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
-    let text = ''
+    const pdfTextExtract = require('pdf-text-extract');
     
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i)
-      const textContent = await page.getTextContent()
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ')
-      text += pageText + '\n'
-    }
-    
-    return text.trim()
+    return new Promise((resolve, reject) => {
+      pdfTextExtract(buffer, (err: any, text: string) => {
+        if (err) {
+          console.error('PDF parsing error:', err);
+          reject(new Error('Failed to parse PDF'));
+        } else {
+          resolve(text);
+        }
+      });
+    });
   } catch (error) {
-    console.error('PDF parsing error:', error)
-    throw new Error('Failed to parse PDF')
+    console.error('PDF parsing error:', error);
+    throw new Error('Failed to parse PDF');
   }
 }
 
@@ -110,7 +100,18 @@ export async function POST(request: NextRequest) {
 
     // Upload file to Supabase Storage
     console.log("Uploading file to Supabase Storage...");
-    const fileName = `${Date.now()}-${file.name}`
+    
+    // Sanitize filename to avoid Supabase storage issues
+    const sanitizeFilename = (filename: string) => {
+      return filename
+        .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special characters with underscores
+        .replace(/_+/g, '_') // Replace multiple underscores with single
+        .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
+    };
+    
+    const sanitizedFileName = sanitizeFilename(file.name);
+    const fileName = `${Date.now()}-${sanitizedFileName}`;
+    
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('uploads')
       .upload(fileName, fileBuffer, {
