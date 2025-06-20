@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { openai } from '@/lib/openai';
+import { OpenAIStream, StreamingTextResponse } from 'ai';
 
 export const runtime = 'edge';
 
@@ -17,9 +18,11 @@ export async function POST(req: NextRequest) {
       messages,
     });
     
-    // The response is a stream, so we can't just return it as JSON.
-    // We need to pipe it to the client.
-    return new NextResponse(response.toReadableStream());
+    // Create a stream of data from the OpenAI API response
+    const stream = OpenAIStream(response);
+    
+    // Respond with the stream
+    return new StreamingTextResponse(stream);
 
   } catch (error) {
     console.error('[CHAT_API_ERROR]', error);
