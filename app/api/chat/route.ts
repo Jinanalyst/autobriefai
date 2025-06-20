@@ -1,31 +1,32 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { openai } from '@/lib/openai';
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+import { NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
-export async function POST(req: NextRequest) {
-  try {
-    const { messages } = await req.json();
+export async function POST(req: Request) {
+  // This feature is temporarily disabled due to a build issue.
+  return new NextResponse(
+    'This feature is temporarily disabled.', 
+    { status: 503 }
+  );
+}
 
-    if (!messages) {
-      return new NextResponse('Messages are required', { status: 400 });
-    }
+// import { createOpenAI } from 'ai/providers/openai';
+// import { streamText } from 'ai';
+// import type { CoreMessage } from 'ai';
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      stream: true,
-      messages,
-    });
-    
-    // Create a stream of data from the OpenAI API response
-    const stream = OpenAIStream(response);
-    
-    // Respond with the stream
-    return new StreamingTextResponse(stream);
+// export const runtime = 'edge';
 
-  } catch (error) {
-    console.error('[CHAT_API_ERROR]', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
-  }
-} 
+// const openai = createOpenAI({
+//   apiKey: process.env.OPENAI_API_KEY,
+// });
+
+// export async function POST(req: Request) {
+//   const { messages }: { messages: CoreMessage[] } = await req.json();
+
+//   const result = await streamText({
+//     model: openai.chat('gpt-4o'),
+//     messages,
+//   });
+
+//   return result.toAIStreamResponse();
+// } 

@@ -40,11 +40,14 @@ export default function Demo() {
     <div className="flex flex-col min-h-screen bg-white">
       <Header />
       <main className="flex-grow flex items-center justify-center container mx-auto px-4">
-        <AIAssistantInterface 
+        {/* <AIAssistantInterface 
           uploadStatus={uploadStatus}
           onFileUpload={handleFileUpload}
           uploadedFile={uploadedFile}
-        />
+        /> */}
+        <p className="text-center text-gray-500">
+          The AI Assistant is temporarily unavailable. We are working on it!
+        </p>
       </main>
     </div>
   )
