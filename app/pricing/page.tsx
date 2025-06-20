@@ -24,13 +24,14 @@ const demoPlans: PricingPlan[] = [
     tier: 'professional',
     price: "0.5",
     yearlyPrice: "0",
-    period: "per month",
+    period: "One-time payment",
     features: [
       "Unlimited summaries",
       "Advanced analytics",
+      "Team collaboration features",
+      "Integration with Notion and Slack",
+      "PDF report export",
       "Priority support",
-      "Team collaboration",
-      "Custom integrations",
     ],
     description: "Ideal for growing teams and businesses",
     buttonText: "Purchase",
@@ -42,12 +43,13 @@ const demoPlans: PricingPlan[] = [
     tier: 'enterprise',
     price: "1",
     yearlyPrice: "0",
-    period: "per month",
+    period: "One-time payment",
     features: [
       "Everything in Professional",
       "Dedicated account manager",
-      "Advanced security",
-      "Custom contracts",
+      "Advanced security features",
+      "Internal API integration",
+      "On-premise hosting option",
       "SLA agreement",
     ],
     description: "For large organizations with specific needs",
@@ -61,9 +63,9 @@ export default function PricingPage() {
   return (
     <Pricing 
       plans={demoPlans}
-      title="Simple, Transparent Pricing"
-      description={`Choose the plan that works for you.
-All plans include access to our platform, lead generation tools, and dedicated support.`}
+      title="Unlock the Power of AI Summarization"
+      description={`Pay with SOL and get instant access.
+Choose the plan that fits your needs.`}
     />
   );
 } 

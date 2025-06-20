@@ -1,24 +1,22 @@
 "use client";
 
 import { buttonVariants } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Check, Star, Wallet } from "lucide-react";
+import { Check, Star } from "lucide-react";
 import Link from "next/link";
-import { useState, useRef } from "react";
-import confetti from "canvas-confetti";
-import NumberFlow from "@number-flow/react";
+import { useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { SystemProgram, Transaction, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { supabase } from "@/lib/supabase";
 import toast from "react-hot-toast";
 
+// Replace with your actual Solana wallet address for receiving payments
+const YOUR_WALLET_ADDRESS = "DXMH7DLXRMHqpwSESmJ918uFhFQSxzvKEb7CA1ZDj1a2";
+
 export interface PricingPlan {
   name: string;
   price: string;
-  yearlyPrice: string;
   period: string;
   features: string[];
   description: string;
@@ -37,43 +35,11 @@ interface PricingProps {
 export function Pricing({
   plans,
   title = "Simple, Transparent Pricing",
-  description = `Choose the plan that works for you
-All plans include access to our platform, lead generation tools, and dedicated support.`,
+  description = `Choose the plan that works for you`,
 }: PricingProps) {
-  const [isMonthly, setIsMonthly] = useState(true);
-  const switchRef = useRef<HTMLButtonElement>(null);
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
   const [isPaying, setIsPaying] = useState<string | null>(null);
-
-  const handleToggle = (checked: boolean) => {
-    setIsMonthly(!checked);
-    if (checked && switchRef.current) {
-      const rect = switchRef.current.getBoundingClientRect();
-      const x = rect.left + rect.width / 2;
-      const y = rect.top + rect.height / 2;
-
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: {
-          x: x / window.innerWidth,
-          y: y / window.innerHeight,
-        },
-        colors: [
-          "hsl(var(--primary))",
-          "hsl(var(--accent))",
-          "hsl(var(--secondary))",
-          "hsl(var(--muted))",
-        ],
-        ticks: 200,
-        gravity: 1.2,
-        decay: 0.94,
-        startVelocity: 30,
-        shapes: ["circle"],
-      });
-    }
-  };
 
   const handlePayment = async (plan: PricingPlan) => {
     if (!publicKey) {
@@ -85,12 +51,10 @@ All plans include access to our platform, lead generation tools, and dedicated s
     const toastId = toast.loading(`Initiating payment for ${plan.name} plan...`);
 
     try {
-      const recipient = new PublicKey("YOUR_WALLET_ADDRESS_HERE"); // <-- IMPORTANT: REPLACE WITH YOUR WALLET ADDRESS
-      const amount = isMonthly ? Number(plan.price) : Number(plan.yearlyPrice);
+      const recipient = new PublicKey(YOUR_WALLET_ADDRESS);
+      const amount = Number(plan.price);
       
-      // For demo purposes, we'll send a tiny amount of SOL
-      // In production, you would use USDC or another SPL token
-      const lamports = 0.01 * LAMPORTS_PER_SOL;
+      const lamports = amount * LAMPORTS_PER_SOL;
 
       const transaction = new Transaction().add(
         SystemProgram.transfer({
@@ -118,13 +82,12 @@ All plans include access to our platform, lead generation tools, and dedicated s
       if (error || !data.success) {
         throw new Error(error?.message || data?.error || "Payment verification failed.");
       }
-
-      toast.success(`Congratulations! You are now on the ${plan.name} plan.`, { id: toastId });
-      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      
+      toast.success(`Congratulations! You are now on the ${plan.name} plan.`, { id: toastId, duration: 5000 });
 
     } catch (error: any) {
       console.error("Payment failed", error);
-      toast.error(`Payment failed: ${error.message}`, { id: toastId });
+      toast.error(`Payment failed: ${error.message}`, { id: toastId, duration: 5000 });
     } finally {
       setIsPaying(null);
     }
@@ -139,11 +102,6 @@ All plans include access to our platform, lead generation tools, and dedicated s
         <p className="text-muted-foreground text-lg whitespace-pre-line">
           {description}
         </p>
-        <div className="pt-4">
-          <Link href="/" className={buttonVariants({ variant: 'outline' })}>
-            Back to Home
-          </Link>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-4 items-stretch">
@@ -164,20 +122,19 @@ All plans include access to our platform, lead generation tools, and dedicated s
               delay: 0.2 * index,
             }}
             className={cn(
-              `rounded-2xl border p-6 bg-background text-center flex flex-col`,
-              plan.isPopular ? "border-primary border-2 lg:scale-105" : "border-border lg:scale-95",
+              `rounded-2xl border p-8 bg-background/50 text-center flex flex-col`,
+              plan.isPopular ? "border-primary shadow-lg lg:scale-105" : "border-border lg:scale-95",
             )}
           >
             {plan.isPopular && (
-              <div className="absolute top-0 right-0 bg-primary py-0.5 px-2 rounded-bl-xl rounded-tr-xl flex items-center">
-                <Star className="text-primary-foreground h-4 w-4 fill-current" />
-                <span className="text-primary-foreground ml-1 font-sans font-semibold">
-                  Popular
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary py-1 px-3 rounded-full flex items-center shadow-md">
+                <span className="text-primary-foreground font-sans font-semibold text-sm">
+                  Most Popular
                 </span>
               </div>
             )}
             <div className="flex-1 flex flex-col">
-              <p className="text-base font-semibold text-muted-foreground">
+              <p className="text-lg font-semibold text-muted-foreground tracking-wider uppercase">
                 {plan.name}
               </p>
               <div className="mt-6 flex items-baseline justify-center gap-x-2">
@@ -197,39 +154,51 @@ All plans include access to our platform, lead generation tools, and dedicated s
                 )}
               </div>
 
-              <p className="text-xs leading-5 text-muted-foreground">
-                One-time payment
+              <p className="text-sm leading-5 text-muted-foreground mt-2">
+                {plan.period}
               </p>
 
-              <ul className="mt-5 gap-2 flex flex-col">
-                {plan.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
-                    <span className="text-left">{feature}</span>
+              <ul
+                role="list"
+                className="mt-8 space-y-3 text-sm leading-6 text-muted-foreground text-left"
+              >
+                {plan.features.map((feature) => (
+                  <li key={feature} className="flex gap-x-3">
+                    <Check
+                      className="h-6 w-5 flex-none text-primary"
+                      aria-hidden="true"
+                    />
+                    {feature}
                   </li>
                 ))}
               </ul>
+            </div>
+            
+            <div className="mt-auto pt-8">
+              {plan.price.toLowerCase() === 'free' ? (
+                  <Link
+                    href={plan.href}
+                    className={cn(buttonVariants({ 
+                      variant: plan.isPopular ? "default" : "outline", 
+                      size: "lg" 
+                    }), "w-full")}
+                  >
+                    {plan.buttonText}
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => handlePayment(plan)}
+                    disabled={isPaying === plan.name || !publicKey}
+                    className={cn(buttonVariants({ 
+                      variant: plan.isPopular ? "default" : "outline", 
+                      size: "lg" 
+                    }), "w-full")}
+                  >
+                    {isPaying === plan.name ? 'Processing...' : plan.buttonText}
+                  </button>
+              )}
 
-              <hr className="w-full my-4" />
-
-              <Link
-                href={plan.href}
-                className={cn(
-                  buttonVariants({
-                    variant: "outline",
-                  }),
-                  "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
-                  "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-primary hover:ring-offset-1 hover:bg-primary hover:text-primary-foreground",
-                  plan.isPopular
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-background text-foreground",
-                  "hover:bg-primary/90",
-                )}
-              >
-                <Wallet className="h-5 w-5" />
-                <span>{plan.buttonText}</span>
-              </Link>
-              <p className="mt-6 text-xs leading-5 text-muted-foreground">
+              <p className="text-sm text-muted-foreground mt-6">
                 {plan.description}
               </p>
             </div>
