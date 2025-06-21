@@ -45,10 +45,8 @@ const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
       },
     })
 
-    // This component is now 'headless' and is triggered by the parent.
-    // We can return just the input.
     return (
-      <div {...getRootProps()} style={{ display: 'none' }}>
+      <div {...getRootProps()} className="absolute left-3 top-1/2 transform -translate-y-1/2">
         <input {...getInputProps()} ref={ref} />
       </div>
     )

@@ -14,8 +14,10 @@ import {
   Plus,
   Search,
   Sparkles,
+  Upload,
 } from "lucide-react";
 import { useChat } from "ai/react";
+import { useDropzone } from "react-dropzone";
 
 import FileUpload from "@/components/FileUpload";
 import { Label } from "@/components/ui/label";
@@ -27,12 +29,14 @@ interface AIAssistantInterfaceProps {
   uploadStatus: UploadStatus;
   onFileUpload: (file: File) => void;
   uploadedFile: File | null;
+  errorMessage: string | null;
 }
 
 export function AIAssistantInterface({
   uploadStatus,
   onFileUpload,
   uploadedFile,
+  errorMessage,
 }: AIAssistantInterfaceProps) {
   const { messages, input, handleInputChange, handleSubmit, setInput } = useChat({
     api: "/api/chat",
@@ -66,6 +70,16 @@ export function AIAssistantInterface({
       setUploadedFiles([]);
     }
   }, [uploadedFile]);
+
+  const { getRootProps, getInputProps } = useDropzone({
+    onDrop: (acceptedFiles) => {
+      acceptedFiles.forEach((file) => {
+        onFileUpload(file);
+      });
+    },
+    maxFiles: 1,
+    maxSize: 100 * 1024 * 1024, // 100MB
+  });
 
   return (
     <div className="w-full max-w-3xl flex flex-col h-[70vh]">
@@ -103,6 +117,40 @@ export function AIAssistantInterface({
 
       {/* Input area */}
       <div className="w-full mt-auto">
+        {/* File Upload Area */}
+        {uploadStatus === 'idle' && !uploadedFile && (
+          <div className="mb-4">
+            <div
+              {...getRootProps()}
+              className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors cursor-pointer"
+            >
+              <input {...getInputProps()} />
+              <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <p className="text-sm text-gray-600 mb-2">
+                <span className="font-medium text-blue-600">Click to upload</span> or drag and drop
+              </p>
+              <p className="text-xs text-gray-500">
+                PDF, DOCX, MP3, MP4, WAV (max 100MB)
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Uploaded File Display */}
+        {uploadedFile && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <FileText className="h-5 w-5 text-blue-600 mr-2" />
+                <span className="text-sm font-medium text-gray-900">{uploadedFile.name}</span>
+              </div>
+              <span className="text-xs text-gray-500">
+                {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+              </span>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="relative">
           <div className="relative flex items-center">
             <button
@@ -126,13 +174,11 @@ export function AIAssistantInterface({
                 <Plus className="w-5 h-5 text-gray-500" />
               )}
             </button>
-            <div style={{ display: "none" }}>
-              <FileUpload
-                onFileUpload={onFileUpload}
-                isUploading={uploadStatus === 'uploading' || uploadStatus === 'processing'}
-                ref={fileInputRef}
-              />
-            </div>
+            <FileUpload
+              onFileUpload={onFileUpload}
+              isUploading={uploadStatus === 'uploading' || uploadStatus === 'processing'}
+              ref={fileInputRef}
+            />
             
             <input
               ref={inputRef}
@@ -157,7 +203,11 @@ export function AIAssistantInterface({
         <div className="text-center mt-2 text-sm text-gray-500 h-5">
           {uploadStatus === 'uploading' && 'Uploading file...'}
           {uploadStatus === 'processing' && 'Processing and summarizing... This may take a moment.'}
-          {uploadStatus === 'failed' && <span className="text-red-500">Upload failed. Please try again.</span>}
+          {uploadStatus === 'failed' && (
+            <span className="text-red-500">
+              Upload failed. {errorMessage || 'Please try again.'}
+            </span>
+          )}
         </div>
 
         {/* Suggestion buttons */}
